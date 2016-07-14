@@ -16,7 +16,7 @@ public let HeimdallrErrorNotAuthorized = 2
     private let credentials: OAuthClientCredentials?
 
     private let accessTokenStore: OAuthAccessTokenStore
-    private var accessToken: OAuthAccessToken? {
+    private(set) var accessToken: OAuthAccessToken? {
         get {
             return accessTokenStore.retrieveAccessToken()
         }
@@ -195,7 +195,7 @@ public let HeimdallrErrorNotAuthorized = 2
     ///
     /// - parameter request: An unauthenticated NSURLRequest.
     /// - parameter completion: A callback to invoke with the authenticated request.
-    public func authenticateRequest(request: NSURLRequest, completion: Result<NSURLRequest, NSError> -> ()) {
+    public func authenticateRequestWithRefresh(request: NSURLRequest, completion: Result<NSURLRequest, NSError> -> ()) {
         if let accessToken = accessToken {
             if accessToken.expiresAt != nil && accessToken.expiresAt < NSDate() {
                 if let refreshToken = accessToken.refreshToken {
@@ -229,6 +229,59 @@ public let HeimdallrErrorNotAuthorized = 2
                 NSLocalizedFailureReasonErrorKey: NSLocalizedString("Not authorized.", comment: "")
             ]
 
+            let error = NSError(domain: HeimdallrErrorDomain, code: HeimdallrErrorNotAuthorized, userInfo: userInfo)
+            completion(.Failure(error))
+        }
+    }
+    
+    
+    /// Alters the given request by adding authentication with an access token.
+    /// Will only do this if the acces token is valid
+    /// - parameter request: An unauthenticated NSURLRequest.
+    ///
+    /// - returns: The given request authorized using the resource request
+    ///     authenticator.
+    public func authenticateRequestWithoutRefresh(request: NSMutableURLRequest) -> NSMutableURLRequest {
+        if let accessToken = accessToken {
+            return self.resourceRequestAuthenticator.authenticateResourceRequest(request, accessToken: accessToken) as! NSMutableURLRequest
+        } else {
+            return request
+        }
+    }
+    
+    public func refreshAccesTokenIfNeeded(completion: Result<Void, NSError> -> ()) {
+        if let accessToken = accessToken {
+            if accessToken.expiresAt != nil && accessToken.expiresAt < NSDate() {
+                if let refreshToken = accessToken.refreshToken {
+                    requestAccessToken(grant: .RefreshToken(refreshToken)) { result in
+                        completion(result.analysis(ifSuccess: { accessToken in
+                            return .Success()
+                            }, ifFailure: { error in
+                                if [ HeimdallrErrorDomain, OAuthErrorDomain ].contains(error.domain) {
+                                    self.clearAccessToken()
+                                }
+                                return .Failure(error)
+                        }))
+                    }
+                } else {
+                    let userInfo = [
+                        NSLocalizedDescriptionKey: NSLocalizedString("Could not add authorization to request", comment: ""),
+                        NSLocalizedFailureReasonErrorKey: NSLocalizedString("Access token expired, no refresh token available.", comment: "")
+                    ]
+                    
+                    let error = NSError(domain: HeimdallrErrorDomain, code: HeimdallrErrorNotAuthorized, userInfo: userInfo)
+                    completion(.Failure(error))
+                }
+            } else {
+                // No need to refresh the token
+                completion(.Success())
+            }
+        } else {
+            let userInfo = [
+                NSLocalizedDescriptionKey: NSLocalizedString("Could not add authorization to request", comment: ""),
+                NSLocalizedFailureReasonErrorKey: NSLocalizedString("Not authorized.", comment: "")
+            ]
+            
             let error = NSError(domain: HeimdallrErrorDomain, code: HeimdallrErrorNotAuthorized, userInfo: userInfo)
             completion(.Failure(error))
         }
