@@ -40,7 +40,8 @@ public let HeimdallrErrorNotAuthorized = 2
     }
     
     private var requestQueue = dispatch_queue_create("com.trivago.Heimdallr.requestQueue", DISPATCH_QUEUE_SERIAL)
-    
+
+
     /// Initializes a new client.
     ///
     /// - parameter tokenURL: The token endpoint URL.
@@ -204,7 +205,7 @@ public let HeimdallrErrorNotAuthorized = 2
             self.authenticateRequestConcurrently(request, completion: completion)
         }
     }
-    
+
     private func authenticateRequestConcurrently(request: NSURLRequest, completion: Result<NSURLRequest, NSError> -> ()) {
         if let accessToken = accessToken {
             if accessToken.expiresAt != nil && accessToken.expiresAt < NSDate() {

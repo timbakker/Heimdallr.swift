@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name = 'Heimdallr'
-  spec.version = '3.3.0'
+  spec.version = '3.4.0'
   spec.authors = {
     'Rheinfabrik' => 'hi@rheinfabrik.de'
   }
@@ -23,7 +23,6 @@ Pod::Spec.new do |spec|
   spec.default_subspec = 'Core'
 
   spec.subspec 'Core' do |subspec|
-    subspec.dependency 'Argo', '~> 3.0'
     subspec.dependency 'Result', '~> 2.0'
     subspec.framework = 'Foundation'
 
