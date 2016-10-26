@@ -165,7 +165,7 @@ public let HeimdallrErrorNotAuthorized = 2
                     completion(.Failure(error))
                 }
             } else {
-                if let data = data, error = OAuthError.decode(data: data) {
+                if let data = data, var error = OAuthError.decode(data: data)?.nsError {
                     var userInfo = error.userInfo
                     userInfo["body"] = String(data: data, encoding: NSUTF8StringEncoding) ?? ""
                     error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
