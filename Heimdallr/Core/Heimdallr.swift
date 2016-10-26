@@ -142,7 +142,7 @@ public let HeimdallrErrorNotAuthorized = 2
         
         httpClient.sendRequest(request) { data, response, error in
             if let error = error {
-                completion(.Failure(error))
+                completion(.Failure("\(String(data: data, encoding: NSUTF8StringEncoding) ?? "") \(error)"))
             } else if (response as! NSHTTPURLResponse).statusCode == 200 {
                 switch self.accessTokenParser.parse(data!) {
                 case let .Success(accessToken):
