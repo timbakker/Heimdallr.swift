@@ -141,8 +141,15 @@ public let HeimdallrErrorNotAuthorized = 2
         request.setHTTPBody(parameters: parameters)
         
         httpClient.sendRequest(request) { data, response, error in
-            if let error = error {
-                completion(.Failure("\(String(data: data, encoding: NSUTF8StringEncoding) ?? "") \(error)"))
+            if var error = error {
+                var userInfo = error.userInfo
+                
+                if let data = data {
+                    userInfo["body"] = String(data: data, encoding: NSUTF8StringEncoding) ?? ""
+                }
+                
+                error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
+                completion(.Failure(error))
             } else if (response as! NSHTTPURLResponse).statusCode == 200 {
                 switch self.accessTokenParser.parse(data!) {
                 case let .Success(accessToken):
@@ -159,7 +166,10 @@ public let HeimdallrErrorNotAuthorized = 2
                 }
             } else {
                 if let data = data, error = OAuthError.decode(data: data) {
-                    completion(.Failure(error.nsError))
+                    var userInfo = error.userInfo
+                    userInfo["body"] = String(data: data, encoding: NSUTF8StringEncoding) ?? ""
+                    error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
+                    completion(.Failure(error))
                 } else {
                     let userInfo = [
                         NSLocalizedDescriptionKey: NSLocalizedString("Could not authorize grant", comment: ""),
