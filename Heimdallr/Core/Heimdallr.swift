@@ -135,8 +135,6 @@ public let HeimdallrErrorNotAuthorized = 2
                 parameters["client_id"] = credentials.id
             }
         }
-<<<<<<< HEAD
-        
         request.HTTPMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setHTTPBody(parameters: parameters)
@@ -150,22 +148,9 @@ public let HeimdallrErrorNotAuthorized = 2
                 }
                 
                 error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
-                completion(.Failure(error))
-            } else if (response as! NSHTTPURLResponse).statusCode == 200 {
-                switch self.accessTokenParser.parse(data!) {
-                case let .Success(accessToken):
-=======
-
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setHTTPBody(parameters: parameters as [String: AnyObject])
-
-        httpClient.sendRequest(request) { data, response, error in
-            if let error = error {
                 completion(.failure(error as NSError))
-            } else if (response as! HTTPURLResponse).statusCode == 200 {
+            } else if (response as! NSHTTPURLResponse).statusCode == 200 {
                 if let accessToken = try? self.accessTokenParser.parse(data: data!) {
->>>>>>> bacd4d0caa3ea42f69c7454b66b1a91ea08aa1fc
                     self.accessToken = accessToken
                     completion(.success(accessToken))
                 } else {
@@ -301,12 +286,12 @@ public let HeimdallrErrorNotAuthorized = 2
                     print("REFRESHING ACCES TOKEN")
                     requestAccessToken(grant: .RefreshToken(refreshToken)) { result in
                         completion(result.analysis(ifSuccess: { accessToken in
-                            return .Success()
+                            return .success()
                             }, ifFailure: { error in
                                 if [ HeimdallrErrorDomain, OAuthErrorDomain ].contains(error.domain) {
                                     self.clearAccessToken()
                                 }
-                                return .Failure(error)
+                                return .failure(error)
                         }))
                         self.releaseRequestQueue()
                     }
@@ -317,7 +302,7 @@ public let HeimdallrErrorNotAuthorized = 2
                     ]
                     
                     let error = NSError(domain: HeimdallrErrorDomain, code: HeimdallrErrorNotAuthorized, userInfo: userInfo)
-                    completion(.Failure(error))
+                    completion(.failure(error))
                     releaseRequestQueue()
                 }
             } else {
@@ -332,7 +317,7 @@ public let HeimdallrErrorNotAuthorized = 2
             ]
             
             let error = NSError(domain: HeimdallrErrorDomain, code: HeimdallrErrorNotAuthorized, userInfo: userInfo)
-            completion(.Failure(error))
+            completion(.failure(error))
             releaseRequestQueue()
         }
     }
