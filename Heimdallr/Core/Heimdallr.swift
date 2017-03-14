@@ -125,7 +125,7 @@ public let HeimdallrErrorNotAuthorized = 2
     /// - parameter grant: The authorization grant (e.g., refresh).
     /// - parameter completion: A callback to invoke when the request completed.
     private func requestAccessToken(grant: OAuthAuthorizationGrant, completion: @escaping (Result<OAuthAccessToken, NSError>) -> Void) {
-        var request = NSMutableURLRequest(url: tokenURL)
+        var request = URLRequest(url: tokenURL)
 
         var parameters = grant.parameters
         if let credentials = credentials {
@@ -135,21 +135,21 @@ public let HeimdallrErrorNotAuthorized = 2
                 parameters["client_id"] = credentials.id
             }
         }
-        request.HTTPMethod = "POST"
+        request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setHTTPBody(parameters: parameters)
+        request.setHTTPBody(parameters: parameters as [String: AnyObject])
         
-        httpClient.sendRequest(request) { data, response, error in
-            if var error = error {
+        httpClient.sendRequest(request as URLRequest) { data, response, error in
+            if var error = error as? NSError {
                 var userInfo = error.userInfo
                 
                 if let data = data {
-                    userInfo["body"] = String(data: data, encoding: NSUTF8StringEncoding) ?? ""
+                    userInfo["body"] = String(data: data, encoding: String.Encoding.utf8) ?? ""
                 }
                 
                 error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
-                completion(.failure(error as NSError))
-            } else if (response as! NSHTTPURLResponse).statusCode == 200 {
+                completion(.failure(error))
+            } else if (response as! HTTPURLResponse).statusCode == 200 {
                 if let accessToken = try? self.accessTokenParser.parse(data: data!) {
                     self.accessToken = accessToken
                     completion(.success(accessToken))
@@ -165,7 +165,7 @@ public let HeimdallrErrorNotAuthorized = 2
             } else {
                 if let data = data, var error = OAuthError.decode(data: data)?.nsError {
                     var userInfo = error.userInfo
-                    userInfo["body"] = String(data: data, encoding: NSUTF8StringEncoding) ?? ""
+                    userInfo["body"] = String(data: data, encoding: String.Encoding.utf8) ?? ""
                     error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
                     completion(.failure(error))
                 } else {
@@ -264,27 +264,27 @@ public let HeimdallrErrorNotAuthorized = 2
     ///
     /// - returns: The given request authorized using the resource request
     ///     authenticator.
-    public func authenticateRequestWithoutRefresh(request: NSMutableURLRequest) -> NSMutableURLRequest {
+    public func authenticateRequestWithoutRefresh(request: URLRequest) -> URLRequest {
         if let accessToken = accessToken {
-            return self.resourceRequestAuthenticator.authenticateResourceRequest(request, accessToken: accessToken) as! NSMutableURLRequest
+            return self.resourceRequestAuthenticator.authenticateResourceRequest(request, accessToken: accessToken)
         } else {
             return request
         }
     }
     
-    public func refreshAccesTokenIfNeeded(forcedRefresh:Bool, completion: Result<Void, NSError> -> ()) {
-        dispatch_async(requestQueue) {
+    public func refreshAccesTokenIfNeeded(_ forcedRefresh:Bool, completion: @escaping (Result<Void, NSError>) -> ()) {
+        requestQueue.async {
             self.blockRequestQueue()
             self.refreshAccesTokenIfNeededConcurrently(forcedRefresh, completion: completion)
         }
     }
     
-    private func refreshAccesTokenIfNeededConcurrently(forcedRefresh:Bool, completion: Result<Void, NSError> -> ()) {
+    private func refreshAccesTokenIfNeededConcurrently(_ forcedRefresh:Bool, completion: @escaping (Result<Void, NSError>) -> ()) {
         if let accessToken = accessToken {
-            if forcedRefresh == true || (accessToken.expiresAt != nil && accessToken.expiresAt < NSDate()) {
+            if forcedRefresh == true || (accessToken.expiresAt != nil && accessToken.expiresAt! < NSDate() as Date) {
                 if let refreshToken = accessToken.refreshToken {
                     print("REFRESHING ACCES TOKEN")
-                    requestAccessToken(grant: .RefreshToken(refreshToken)) { result in
+                    requestAccessToken(grant: .refreshToken(refreshToken)) { result in
                         completion(result.analysis(ifSuccess: { accessToken in
                             return .success()
                             }, ifFailure: { error in
@@ -307,7 +307,7 @@ public let HeimdallrErrorNotAuthorized = 2
                 }
             } else {
                 // No need to refresh the token
-                completion(Result.Success())
+                completion(Result.success())
                 releaseRequestQueue()
             }
         } else {
