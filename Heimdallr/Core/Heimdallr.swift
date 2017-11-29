@@ -272,21 +272,21 @@ public let HeimdallrErrorNotAuthorized = 2
         }
     }
     
-    public func refreshAccesTokenIfNeeded(_ forcedRefresh:Bool, completion: @escaping (Result<Void, NSError>) -> ()) {
+    public func refreshAccesTokenIfNeeded(_ forcedRefresh:Bool, completion: @escaping (Result<String, NSError>) -> ()) {
         requestQueue.async {
             self.blockRequestQueue()
             self.refreshAccesTokenIfNeededConcurrently(forcedRefresh, completion: completion)
         }
     }
     
-    private func refreshAccesTokenIfNeededConcurrently(_ forcedRefresh:Bool, completion: @escaping (Result<Void, NSError>) -> ()) {
+    private func refreshAccesTokenIfNeededConcurrently(_ forcedRefresh:Bool, completion: @escaping (Result<String, NSError>) -> ()) {
         if let accessToken = accessToken {
             if forcedRefresh == true || (accessToken.expiresAt != nil && accessToken.expiresAt! < NSDate() as Date) {
                 if let refreshToken = accessToken.refreshToken {
                     print("REFRESHING ACCES TOKEN")
                     requestAccessToken(grant: .refreshToken(refreshToken)) { result in
                         completion(result.analysis(ifSuccess: { accessToken in
-                            return .success()
+                            return .success("")
                             }, ifFailure: { error in
                                 if [ HeimdallrErrorDomain, OAuthErrorDomain ].contains(error.domain) {
                                     self.clearAccessToken()
@@ -307,7 +307,7 @@ public let HeimdallrErrorNotAuthorized = 2
                 }
             } else {
                 // No need to refresh the token
-                completion(Result.success())
+                completion(Result.success(""))
                 releaseRequestQueue()
             }
         } else {
