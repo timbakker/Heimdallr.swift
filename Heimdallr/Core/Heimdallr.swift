@@ -140,15 +140,15 @@ public let HeimdallrErrorNotAuthorized = 2
         request.setHTTPBody(parameters: parameters as [String: AnyObject])
         
         httpClient.sendRequest(request as URLRequest) { data, response, error in
-            if var error = error as? NSError {
-                var userInfo = error.userInfo
+            if let error = error {
+                var userInfo = (error as NSError).userInfo
                 
                 if let data = data {
                     userInfo["body"] = String(data: data, encoding: String.Encoding.utf8) ?? ""
                 }
                 
-                error = NSError(domain: error.domain, code: error.code, userInfo: userInfo)
-                completion(.failure(error))
+                let nsError = NSError(domain: (error as NSError).domain, code: (error as NSError).code, userInfo: userInfo)
+                completion(.failure(nsError))
             } else if (response as! HTTPURLResponse).statusCode == 200 {
                 if let accessToken = try? self.accessTokenParser.parse(data: data!) {
                     self.accessToken = accessToken
